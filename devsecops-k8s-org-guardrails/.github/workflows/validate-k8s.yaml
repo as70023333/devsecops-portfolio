@@ -1,0 +1,25 @@
+name: Validate K8s Manifests
+
+on:
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubeval
+        run: |
+          curl -sSL https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
+          sudo mv kubeval /usr/local/bin/
+
+      - name: Validate manifests
+        run: |
+          kubeval ./examples/demo-app-helm/*.yaml || true
+          kubeval ./examples/demo-app-kustomize/*.yaml || true
+
+      - name: Run OPA tests
+        run: |
+          docker run --rm -v $PWD:/project openpolicyagent/opa test /project/policies/ --verbose
